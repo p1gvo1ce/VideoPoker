@@ -1,7 +1,8 @@
-from kivy.properties import ListProperty, NumericProperty, StringProperty
+from kivy.properties import ListProperty, BooleanProperty, NumericProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.label import Label
 from kivy.uix.image import Image
+from kivy.uix.label import Label
+from kivy.uix.widget import Widget
 from kivy.clock import Clock
 from kivy.utils import get_color_from_hex
 
@@ -17,6 +18,8 @@ class PokerGame(BoxLayout):
     win_amount      = NumericProperty(0)
     combo_text      = StringProperty('')
     action_text     = StringProperty('Раздать')
+    action_disabled = BooleanProperty(False)
+    bet_controls_disabled = BooleanProperty(False)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -31,7 +34,7 @@ class PokerGame(BoxLayout):
         grid.clear_widgets()
         grid.add_widget(Label(text='Комбинация', bold=True))
         grid.add_widget(Label(text='Коэфф.', bold=True))
-        grid.add_widget(Label())
+        grid.add_widget(Widget())
         self.payouts = [
             {"name": "Royal Flush",       "coef": 250, "img": "royal_flush.png"},
             {"name": "Straight Flush",    "coef": 50,  "img": "straight_flush.png"},
@@ -53,15 +56,15 @@ class PokerGame(BoxLayout):
             grid.add_widget(img)
             self._row_labels[item["name"]] = (lbl_name, lbl_coef)
 
-    def _reveal_card(self, idx, card):
-        self.card_sources[idx] = f"cards/{card.suit.lower()}_{card.rank.rank_name.lower()}.png"
-
     def _reset_table_highlight(self):
         if self._blink_ev:
             self._blink_ev.cancel()
         for lbl_name, lbl_coef in self._row_labels.values():
             lbl_name.color = [1, 1, 1, 1]
             lbl_coef.color = [1, 1, 1, 1]
+
+    def _reveal_card(self, idx, card):
+        self.card_sources[idx] = f"cards/{card.suit.lower()}_{card.rank.rank_name.lower()}.png"
 
     def on_action(self):
         if not self._game_active:
@@ -70,12 +73,16 @@ class PokerGame(BoxLayout):
             self.replace_cards()
 
     def start_round(self):
+        # disable bet controls until round end
+        self.bet_controls_disabled = True
+        # reset highlight and blink
+        self._reset_table_highlight()
+
         bet = self.chip_value * self.chip_count
         if self.current_balance < bet:
             print("Недостаточно средств!")
+            self.bet_controls_disabled = False
             return
-
-        self._reset_table_highlight()
 
         self.current_balance -= bet
         self.dealer = Dealer()
@@ -83,18 +90,20 @@ class PokerGame(BoxLayout):
         self.dealer.dealer_draw()
 
         self.card_sources = ['cards/back.png'] * 5
-        self.held_flags = [False] * 5
-        self.dealer.held = [False] * 5
-        self.win_amount = 0
-        self.combo_text = ''
+        self.held_flags   = [False] * 5
+        self.dealer.held  = [False] * 5
+        self.win_amount   = 0
+        self.combo_text   = ''
 
         for i, c in enumerate(self.dealer.hand):
             Clock.schedule_once(lambda dt, i=i, c=c: self._reveal_card(i, c), i + 1)
 
         self._game_active = True
         self.action_text = 'Заменить'
+        self.action_disabled = False
 
     def replace_cards(self):
+        self.action_disabled = True
         for i, held in enumerate(self.held_flags):
             self.dealer.held[i] = held
 
@@ -108,8 +117,6 @@ class PokerGame(BoxLayout):
             Clock.schedule_once(lambda dt, ix=idx: self._reveal_card(ix, self.dealer.hand[ix]), j + 1)
 
         Clock.schedule_once(lambda dt: self._finalize_replace(), len(to_reveal) + 1)
-        self._game_active = False
-        self.action_text = 'Раздать'
 
     def _finalize_replace(self):
         combo = self.dealer.evaluation
@@ -119,6 +126,10 @@ class PokerGame(BoxLayout):
         self.current_balance += self.win_amount
         self.combo_text = combo
         self.blink_row(combo)
+        # re-enable controls
+        self.action_disabled = False
+        self.bet_controls_disabled = False
+        self.action_text = 'Раздать'
 
     def on_hold_toggle(self, idx):
         self.held_flags[idx] = not self.held_flags[idx]

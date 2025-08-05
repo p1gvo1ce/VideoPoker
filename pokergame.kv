@@ -3,7 +3,6 @@
     padding: 10
     spacing: 10
 
-    # Левая часть — таблица комбинаций и выплат
     BoxLayout:
         orientation: 'vertical'
         spacing: 10
@@ -19,7 +18,6 @@
                 size_hint_y: None
                 height: self.minimum_height
                 row_default_height: '30dp'
-                row_force_default: True
                 spacing: 2
                 padding: 2
 
@@ -28,7 +26,7 @@
             size_hint_y: 0.4
             spacing: 10
 
-            # Карта 0
+            # Карты с HOLD
             BoxLayout:
                 orientation: 'vertical'
                 spacing: 5
@@ -41,7 +39,6 @@
                     state: 'down' if root.held_flags[0] else 'normal'
                     on_press: root.on_hold_toggle(0)
 
-            # Карта 1
             BoxLayout:
                 orientation: 'vertical'
                 spacing: 5
@@ -54,7 +51,6 @@
                     state: 'down' if root.held_flags[1] else 'normal'
                     on_press: root.on_hold_toggle(1)
 
-            # Карта 2
             BoxLayout:
                 orientation: 'vertical'
                 spacing: 5
@@ -67,7 +63,6 @@
                     state: 'down' if root.held_flags[2] else 'normal'
                     on_press: root.on_hold_toggle(2)
 
-            # Карта 3
             BoxLayout:
                 orientation: 'vertical'
                 spacing: 5
@@ -80,7 +75,6 @@
                     state: 'down' if root.held_flags[3] else 'normal'
                     on_press: root.on_hold_toggle(3)
 
-            # Карта 4
             BoxLayout:
                 orientation: 'vertical'
                 spacing: 5
@@ -103,6 +97,7 @@
                 font_size: '24sp'
                 size_hint_y: 0.8
                 on_press: root.on_action()
+                disabled: root.action_disabled
 
     # Правая панель — счёт, ставка, управление фишками, выигрыш
     BoxLayout:
@@ -127,6 +122,7 @@
                 text: '–'
                 font_size: '18sp'
                 on_press: root.decrease_chip_value()
+                disabled: root.bet_controls_disabled
             Label:
                 text: f"Цена фишки: {root.chip_value}"
                 font_size: '18sp'
@@ -134,6 +130,7 @@
                 text: '+'
                 font_size: '18sp'
                 on_press: root.increase_chip_value()
+                disabled: root.bet_controls_disabled
 
         # Количество фишек
         BoxLayout:
@@ -144,6 +141,7 @@
                 text: '–'
                 font_size: '18sp'
                 on_press: root.decrease_chip_count()
+                disabled: root.bet_controls_disabled
             Label:
                 text: f"Кол-во фишек: {root.chip_count}"
                 font_size: '18sp'
@@ -151,12 +149,13 @@
                 text: '+'
                 font_size: '18sp'
                 on_press: root.increase_chip_count()
+                disabled: root.bet_controls_disabled
 
         # Выигрыш + комбинация
         Label:
             id: win_label
             markup: True
-            text: f"[color=000000][b]Выигрыш: {root.win_amount}[/b][color=000000]\n{root.combo_text}"
+            text: f"[color=000000][b]Выигрыш: {root.win_amount}[/b][/color]\n[color=222222]{root.combo_text}[/color]"
             font_size: '32sp'
             halign: 'center'
             text_size: self.width, None
