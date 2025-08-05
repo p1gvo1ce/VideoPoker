@@ -9,12 +9,19 @@ Cards, chips, combinations, payout logic — all wrapped in a slick interface wi
 
 ## 🕹 Features
 
-- 🎴 Custom card deck with smooth delayed reveal animation
-- 💸 Fully configurable bets (chip value + quantity)
-- 📈 Payout table with visual highlighting of winning combos
-- 💡 HOLD system with toggles
-- 🟨 Blinking row effect on win
-- 🎯 Realistic logic for dealing, replacing and evaluating poker hands
+🎴 Custom card deck with smooth delayed reveal animation
+💸 Fully configurable bets (chip value + quantity)
+📈 Payout table with visual highlighting of winning combos
+💡 HOLD system with toggles
+🟨 Blinking row effect on win
+🎯 Realistic logic for dealing, replacing and evaluating poker hands
+
+🔒 Fairness system based on cryptographic seed commitment
+🔁 Reproducible deals using UUID-based seeded RNG
+📤 Reveal of hash at deal time, seed after draw phase
+🧪 Seed input mode with manual deal reproduction (via main_check)
+🧩 HOLD + REPLACE supported in seed-check mode
+🃏 Full-deck view screen to inspect complete shuffle order
 
 ---
 
