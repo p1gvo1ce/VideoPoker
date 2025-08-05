@@ -9,6 +9,7 @@ from kivy.utils import get_color_from_hex
 from dealer import Dealer
 
 class PokerGame(BoxLayout):
+    # UI properties
     card_sources    = ListProperty(['cards/back.png'] * 5)
     held_flags      = ListProperty([False] * 5)
     chip_value      = NumericProperty(1)
@@ -17,6 +18,10 @@ class PokerGame(BoxLayout):
     current_balance = NumericProperty(100)
     win_amount      = NumericProperty(0)
     combo_text      = StringProperty('')
+    # display commitment and seed
+    commitment_text = StringProperty('')
+    seed_text       = StringProperty('')
+    # action button
     action_text     = StringProperty('Раздать')
     action_disabled = BooleanProperty(False)
     bet_controls_disabled = BooleanProperty(False)
@@ -73,9 +78,12 @@ class PokerGame(BoxLayout):
             self.replace_cards()
 
     def start_round(self):
-        # disable bet controls until round end
+        # show commitment, clear seed
+        self.dealer = Dealer()
+        self.commitment_text = self.dealer.commitment
+        self.seed_text = ''
+        # disable controls until end of round
         self.bet_controls_disabled = True
-        # reset highlight and blink
         self._reset_table_highlight()
 
         bet = self.chip_value * self.chip_count
@@ -85,16 +93,16 @@ class PokerGame(BoxLayout):
             return
 
         self.current_balance -= bet
-        self.dealer = Dealer()
-        self.dealer.shuffle_deck()
+        # draw first five cards
         self.dealer.dealer_draw()
 
+        # reset UI
         self.card_sources = ['cards/back.png'] * 5
         self.held_flags   = [False] * 5
-        self.dealer.held  = [False] * 5
         self.win_amount   = 0
         self.combo_text   = ''
 
+        # reveal cards one by one
         for i, c in enumerate(self.dealer.hand):
             Clock.schedule_once(lambda dt, i=i, c=c: self._reveal_card(i, c), i + 1)
 
@@ -104,18 +112,21 @@ class PokerGame(BoxLayout):
 
     def replace_cards(self):
         self.action_disabled = True
+        # update held flags
         for i, held in enumerate(self.held_flags):
             self.dealer.held[i] = held
 
         self.dealer.dealer_replace()
         self.dealer.evaluate()
 
+        # reveal replacements
         to_reveal = [i for i, h in enumerate(self.held_flags) if not h]
         for idx in to_reveal:
             self.card_sources[idx] = 'cards/back.png'
         for j, idx in enumerate(to_reveal):
             Clock.schedule_once(lambda dt, ix=idx: self._reveal_card(ix, self.dealer.hand[ix]), j + 1)
 
+        # finalize
         Clock.schedule_once(lambda dt: self._finalize_replace(), len(to_reveal) + 1)
 
     def _finalize_replace(self):
@@ -126,6 +137,8 @@ class PokerGame(BoxLayout):
         self.current_balance += self.win_amount
         self.combo_text = combo
         self.blink_row(combo)
+        # show seed after result
+        self.seed_text = self.dealer.seed
         # re-enable controls
         self.action_disabled = False
         self.bet_controls_disabled = False

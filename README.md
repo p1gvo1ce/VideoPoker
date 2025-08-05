@@ -59,12 +59,6 @@ python main.py
 
 🛠 To-Do
 
-Maintaining the deck sequence and dealing from the top cards, not randomly
-
-Replacing the random module with a deterministic and verifiable algorithm
-
-Displaying the deal seed and an interface for checking the deal by seed.
-
 Sound effects for dealing & winning
 
 Touch support optimization for mobile

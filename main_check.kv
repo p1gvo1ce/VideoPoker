@@ -1,0 +1,180 @@
+#:import dp kivy.metrics.dp
+
+<CheckScreen>:
+    name: 'check'
+    BoxLayout:
+        orientation: 'vertical'
+        padding: dp(10)
+        spacing: dp(10)
+
+        # 1) Ввод seed и кнопка «Раздать»
+        BoxLayout:
+            size_hint_y: None
+            height: dp(40)
+            spacing: dp(10)
+
+            Label:
+                text: 'Введите seed:'
+                size_hint_x: None
+                width: dp(100)
+                font_size: '16sp'
+
+            TextInput:
+                text: root.seed_input
+                multiline: False
+                font_size: '16sp'
+                on_text: root.seed_input = self.text
+
+            Button:
+                text: 'Раздать'
+                size_hint_x: None
+                width: dp(100)
+                font_size: '16sp'
+                on_press: root.start_with_seed()
+
+        # 2) Показ commitment hash и seed (read-only для копирования)
+        BoxLayout:
+            size_hint_y: None
+            height: dp(30)
+            spacing: dp(10)
+
+            Label:
+                text: 'Hash: ' + root.commitment_text
+                font_size: '14sp'
+                shorten: True
+                text_size: self.width, None
+                halign: 'left'
+
+            TextInput:
+                text: root.seed_text
+                readonly: True
+                font_size: '14sp'
+                background_color: 0,0,0,0
+                foreground_color: 1,1,1,1
+                cursor_color: 1,1,1,1
+                halign: 'left'
+                valign: 'middle'
+                padding: [5, (self.height - self.line_height)/2]
+
+        # 3) Зона карт + HOLD
+        BoxLayout:
+            size_hint_y: None
+            height: dp(220)
+            spacing: dp(10)
+
+            # Карты 0–4 по той же схеме
+            BoxLayout:
+                orientation: 'vertical'
+                spacing: dp(5)
+                Image:
+                    source: root.card_sources[0]
+                Button:
+                    text: 'HOLD'
+                    size_hint_y: None
+                    height: dp(40)
+                    on_press: root.on_card_hold(0)
+            BoxLayout:
+                orientation: 'vertical'
+                spacing: dp(5)
+                Image:
+                    source: root.card_sources[1]
+                Button:
+                    text: 'HOLD'
+                    size_hint_y: None
+                    height: dp(40)
+                    on_press: root.on_card_hold(1)
+            BoxLayout:
+                orientation: 'vertical'
+                spacing: dp(5)
+                Image:
+                    source: root.card_sources[2]
+                Button:
+                    text: 'HOLD'
+                    size_hint_y: None
+                    height: dp(40)
+                    on_press: root.on_card_hold(2)
+            BoxLayout:
+                orientation: 'vertical'
+                spacing: dp(5)
+                Image:
+                    source: root.card_sources[3]
+                Button:
+                    text: 'HOLD'
+                    size_hint_y: None
+                    height: dp(40)
+                    on_press: root.on_card_hold(3)
+            BoxLayout:
+                orientation: 'vertical'
+                spacing: dp(5)
+                Image:
+                    source: root.card_sources[4]
+                Button:
+                    text: 'HOLD'
+                    size_hint_y: None
+                    height: dp(40)
+                    on_press: root.on_card_hold(4)
+
+        # 4) Кнопки «Заменить» и «Показать колоду»
+        BoxLayout:
+            size_hint_y: None
+            height: dp(50)
+            spacing: dp(10)
+
+            Button:
+                text: 'Заменить'
+                font_size: '18sp'
+                on_press: root.replace_with_holds()
+                disabled: not root.commitment_text
+
+            Button:
+                text: 'Показать колоду'
+                font_size: '18sp'
+                on_press: root.show_deck()
+                disabled: not root.commitment_text
+
+        # 5) Результат комбинации
+        Label:
+            text: root.combo_text and 'Комбо: ' + root.combo_text or ''
+            font_size: '18sp'
+            halign: 'center'
+            size_hint_y: None
+            height: self.texture_size[1]
+
+
+<DeckScreen>:
+    name: 'deck'
+    BoxLayout:
+        orientation: 'vertical'
+        padding: dp(10)
+        spacing: dp(10)
+
+        # 1) Кнопка «Назад» (фиксированная высота)
+        BoxLayout:
+            size_hint_y: None
+            height: dp(40)
+            Button:
+                text: 'Назад'
+                font_size: '16sp'
+                on_press: root.go_back()
+
+        # 2) Горизонтальный ScrollView, заполняющий всё остальное пространство
+        ScrollView:
+            do_scroll_x: True
+            do_scroll_y: False
+            size_hint_y: 1  # растягиваем на оставшееся
+
+            RecycleView:
+                id: rv
+                viewclass: 'Image'
+                size_hint: 1, 1  # заполняет ScrollView
+
+                RecycleGridLayout:
+                    cols: 13
+                    size_hint_y: None
+                    height: self.minimum_height  # авто-высота
+                    default_size: None, dp(120)
+                    default_size_hint: 1, None
+                    spacing: dp(5)
+
+                # данные задаются в коде:
+                # self.ids.rv.data = self.deck_data

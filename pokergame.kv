@@ -7,6 +7,29 @@
         orientation: 'vertical'
         spacing: 10
 
+        # Commitment hash and seed display
+        BoxLayout:
+            size_hint_y: None
+            height: '40dp'
+            spacing: 10
+            Label:
+                text: f"Hash: {root.commitment_text}"
+                font_size: '14sp'
+                text_size: self.width, None
+                shorten: True
+                halign: 'left'
+            TextInput:
+                text: root.seed_text
+                font_size: '14sp'
+                size_hint_x: 0.6
+                readonly: True
+                background_color: 0, 0, 0, 0
+                foreground_color: 1, 1, 1, 1
+                cursor_color: 1, 1, 1, 1
+                halign: 'left'
+                valign: 'middle'
+                padding: [5, (self.height - self.line_height) / 2]
+
         ScrollView:
             size_hint_y: 0.4
             do_scroll_x: False
