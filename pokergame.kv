@@ -152,12 +152,14 @@
                 font_size: '18sp'
                 on_press: root.increase_chip_count()
 
-        # Выигрыш
+        # Выигрыш + комбинация
         Label:
             id: win_label
             markup: True
-            text: f"[color=000000][b]Выигрыш: {root.win_amount}[/b][/color]"
+            text: f"[color=000000][b]Выигрыш: {root.win_amount}[/b][color=000000]\n{root.combo_text}"
             font_size: '32sp'
+            halign: 'center'
+            text_size: self.width, None
             canvas.before:
                 Color:
                     rgba: 1, 1, 0, 1
