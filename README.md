@@ -25,7 +25,7 @@ Cards, chips, combinations, payout logic — all wrapped in a slick interface wi
 ```bash
 git clone https://github.com/yourname/video-poker-kivy.git
 cd video-poker-kivy
-
+```
     Create and activate virtual environment:
 
 python -m venv .venv
@@ -58,6 +58,12 @@ python main.py
     All assets can be swapped via cards/ folder
 
 🛠 To-Do
+
+Maintaining the deck sequence and dealing from the top cards, not randomly
+
+Replacing the random module with a deterministic and verifiable algorithm
+
+Displaying the deal seed and an interface for checking the deal by seed.
 
 Sound effects for dealing & winning
 
