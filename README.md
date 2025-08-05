@@ -3,7 +3,7 @@
 A classic **Video Poker** game built with Python and Kivy.  
 Cards, chips, combinations, payout logic — all wrapped in a slick interface with custom graphics and animations.
 
-![Screenshot](assets/screenshots/demo.png) <!-- добавь сам при желании -->
+![Screenshot](assets/screenshots/demo.png)
 
 ---
 
