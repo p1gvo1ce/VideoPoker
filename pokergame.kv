@@ -1,0 +1,166 @@
+<PokerGame>:
+    orientation: 'horizontal'
+    padding: 10
+    spacing: 10
+
+    # Левая часть — таблица комбинаций и выплат
+    BoxLayout:
+        orientation: 'vertical'
+        spacing: 10
+
+        ScrollView:
+            size_hint_y: 0.4
+            do_scroll_x: False
+            do_scroll_y: True
+
+            GridLayout:
+                id: table_grid
+                cols: 3
+                size_hint_y: None
+                height: self.minimum_height
+                row_default_height: '30dp'
+                row_force_default: True
+                spacing: 2
+                padding: 2
+
+        # Зона карт
+        BoxLayout:
+            size_hint_y: 0.4
+            spacing: 10
+
+            # Карта 0
+            BoxLayout:
+                orientation: 'vertical'
+                spacing: 5
+                Image:
+                    source: root.card_sources[0]
+                ToggleButton:
+                    text: 'HOLD'
+                    font_size: '20sp'
+                    size_hint_y: 0.2
+                    state: 'down' if root.held_flags[0] else 'normal'
+                    on_press: root.on_hold_toggle(0)
+
+            # Карта 1
+            BoxLayout:
+                orientation: 'vertical'
+                spacing: 5
+                Image:
+                    source: root.card_sources[1]
+                ToggleButton:
+                    text: 'HOLD'
+                    font_size: '20sp'
+                    size_hint_y: 0.2
+                    state: 'down' if root.held_flags[1] else 'normal'
+                    on_press: root.on_hold_toggle(1)
+
+            # Карта 2
+            BoxLayout:
+                orientation: 'vertical'
+                spacing: 5
+                Image:
+                    source: root.card_sources[2]
+                ToggleButton:
+                    text: 'HOLD'
+                    font_size: '20sp'
+                    size_hint_y: 0.2
+                    state: 'down' if root.held_flags[2] else 'normal'
+                    on_press: root.on_hold_toggle(2)
+
+            # Карта 3
+            BoxLayout:
+                orientation: 'vertical'
+                spacing: 5
+                Image:
+                    source: root.card_sources[3]
+                ToggleButton:
+                    text: 'HOLD'
+                    font_size: '20sp'
+                    size_hint_y: 0.2
+                    state: 'down' if root.held_flags[3] else 'normal'
+                    on_press: root.on_hold_toggle(3)
+
+            # Карта 4
+            BoxLayout:
+                orientation: 'vertical'
+                spacing: 5
+                Image:
+                    source: root.card_sources[4]
+                ToggleButton:
+                    text: 'HOLD'
+                    font_size: '20sp'
+                    size_hint_y: 0.2
+                    state: 'down' if root.held_flags[4] else 'normal'
+                    on_press: root.on_hold_toggle(4)
+
+        # Кнопка управления игрой
+        BoxLayout:
+            size_hint_y: 0.15
+            spacing: 10
+            Button:
+                id: action_btn
+                text: root.action_text
+                font_size: '24sp'
+                size_hint_y: 0.8
+                on_press: root.on_action()
+
+    # Правая панель — счёт, ставка, управление фишками, выигрыш
+    BoxLayout:
+        orientation: 'vertical'
+        size_hint_x: 0.3
+        spacing: 10
+
+        Label:
+            text: f"Текущий счёт: {root.current_balance}"
+            font_size: '18sp'
+
+        Label:
+            text: f"Текущая ставка: {root.current_bet}"
+            font_size: '18sp'
+
+        # Стоимость фишки
+        BoxLayout:
+            size_hint_y: None
+            height: '40dp'
+            spacing: 5
+            Button:
+                text: '–'
+                font_size: '18sp'
+                on_press: root.decrease_chip_value()
+            Label:
+                text: f"Цена фишки: {root.chip_value}"
+                font_size: '18sp'
+            Button:
+                text: '+'
+                font_size: '18sp'
+                on_press: root.increase_chip_value()
+
+        # Количество фишек
+        BoxLayout:
+            size_hint_y: None
+            height: '40dp'
+            spacing: 5
+            Button:
+                text: '–'
+                font_size: '18sp'
+                on_press: root.decrease_chip_count()
+            Label:
+                text: f"Кол-во фишек: {root.chip_count}"
+                font_size: '18sp'
+            Button:
+                text: '+'
+                font_size: '18sp'
+                on_press: root.increase_chip_count()
+
+        # Выигрыш
+        Label:
+            id: win_label
+            markup: True
+            text: f"[color=000000][b]Выигрыш: {root.win_amount}[/b][/color]"
+            font_size: '32sp'
+            canvas.before:
+                Color:
+                    rgba: 1, 1, 0, 1
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
