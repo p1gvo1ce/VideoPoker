@@ -130,6 +130,7 @@ class PokerGame(BoxLayout):
         self.action_disabled = False
         self.bet_controls_disabled = False
         self.action_text = 'Раздать'
+        self._game_active = False
 
     def on_hold_toggle(self, idx):
         self.held_flags[idx] = not self.held_flags[idx]
