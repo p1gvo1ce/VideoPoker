@@ -26,21 +26,21 @@ Cards, chips, combinations, payout logic — all wrapped in a slick interface wi
 git clone https://github.com/yourname/video-poker-kivy.git
 cd video-poker-kivy
 ```
-    Create and activate virtual environment:
-
+Create and activate virtual environment:
+```
 python -m venv .venv
 source .venv/bin/activate  # or .venv\Scripts\activate on Windows
-
-    Install dependencies:
-
+```
+Install dependencies:
+```
 pip install -r requirements.txt
-
-    Run:
-
+```
+Run:
+```
 python main.py
-
+```
 🧱 Project Structure
-
+```
 .
 ├── main.py              # Entry point
 ├── main_logic.py        # Game logic and mechanics
@@ -50,7 +50,7 @@ python main.py
 │   └── combinations/    # Visuals for poker hands
 ├── cards/               # All card images
 └── README.md
-
+```
 🎨 Assets
 
     Card backs and face cards are custom or from open sources (e.g. Wikimedia, OpenGameArt)
