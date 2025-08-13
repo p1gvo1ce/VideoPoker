@@ -9,19 +9,22 @@ Cards, chips, combinations, payout logic — all wrapped in a slick interface wi
 
 ## 🕹 Features
 
-- 🎴 Custom card deck with smooth delayed reveal animation
+- 🎴 **Custom card deck** with smooth delayed reveal animation
 - 💸 Fully configurable bets (chip value + quantity)
 - 📈 Payout table with visual highlighting of winning combos
 - 💡 HOLD system with toggles
 - 🟨 Blinking row effect on win
-- 🎯 Realistic logic for dealing, replacing and evaluating poker hands
+- 🎯 Accurate hand evaluation (Jacks or Better rules)
 
-- 🔒 Fairness system based on cryptographic seed commitment
-- 🔁 Reproducible deals using UUID-based seeded RNG
-- 📤 Reveal of hash at deal time, seed after draw phase
-- 🧪 Seed input mode with manual deal reproduction (via main_check)
-- 🧩 HOLD + REPLACE supported in seed-check mode
-- 🃏 Full-deck view screen to inspect complete shuffle order
+- 🔒 **Fairness system with cryptographic seed commitment**
+  - Commitment (SHA-256 of server seed) shown **before** dealing
+  - Seed revealed **after** replace phase
+  - Full-deck order reproducible in control app
+  - Deterministic shuffle via Fisher–Yates + NumPy `PCG64` + `SeedSequence(sha256(seed)->uint32[8])`
+- 📤 **Manual seed-check mode** (`main_check`):
+  - Enter a known seed to reproduce the exact shuffle
+  - View full deck order
+  - HOLD + REPLACE work as in live mode
 
 ---
 
@@ -60,16 +63,35 @@ python main.py
 ```
 🎨 Assets
 
-    Card backs and face cards are custom or from open sources (e.g. Wikimedia, OpenGameArt)
+    Card backs and faces: custom or open-license sources (Wikimedia, OpenGameArt)
 
-    All assets can be swapped via cards/ folder
+    Easily replaceable via cards/ folder
 
 🛠 To-Do
 
-Sound effects for dealing & winning
+    Sound effects for dealing & winning
 
-Touch support optimization for mobile
+    Touch support optimization for mobile
 
-Save/load balance
+    Save/load player balance
 
-Royal flush bonus animation?
+    Royal flush bonus animation
+
+🔍 Fairness Verification
+
+    At deal time — the game shows SHA-256 hash of the secret server seed (commitment).
+
+    After replace phase — the game reveals the seed.
+
+    Verification:
+
+        Control app applies the same shuffle algorithm:
+
+        h = sha256(seed.encode()).digest()
+        ss = SeedSequence(np.frombuffer(h, dtype=np.uint32))
+        rng = Generator(PCG64(ss))
+        Fisher–Yates shuffle over a standard 52-card deck
+
+        Compare first 5 + replaced cards with the played hand.
+
+Any player can confirm the deck order matched the committed seed — no hidden rigging possible.

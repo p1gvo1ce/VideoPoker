@@ -3,6 +3,7 @@ import hashlib
 import logging
 from collections import Counter
 import numpy as np
+from numpy.random import Generator, PCG64, SeedSequence
 
 from deck_manager import Card, create_deck
 
@@ -13,8 +14,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def is_consecutive(ranks: list[int]) -> bool:
-    return len(ranks) == 5 and max(ranks) - min(ranks) == 4
+def is_consecutive(sr: list[int]) -> bool:
+    return (
+        len(sr) == 5 and
+        sr[-1] - sr[0] == 4 and
+        all(b - a == 1 for a, b in zip(sr, sr[1:]))
+    )
 
 def analyze_hand(hand: list[Card]) -> dict:
     ranks = [card.rank.rank_value for card in hand]
@@ -33,10 +38,10 @@ def analyze_hand(hand: list[Card]) -> dict:
         "is_wheel": sorted_ranks == [2, 3, 4, 5, 14]
     }
 
-def evaluate_hand(hand: list[Card]) -> str:
+def evaluate_hand_jacks_or_better(hand: list[Card]) -> str:
     d = analyze_hand(hand)
     rc = d["rank_counts"]
-    if d["is_flush"] and (d["is_straight"] or d["is_wheel"]) and max(d["ranks"]) == 14:
+    if d["is_flush"] and d["sorted_ranks"] == [10,11,12,13,14]:
         return "Royal Flush"
     if d["is_flush"] and (d["is_straight"] or d["is_wheel"]):
         return "Straight Flush"
@@ -62,19 +67,18 @@ class Dealer:
         # generate seed and commitment hash
         self.seed = seed or str(uuid.uuid4())
         self.commitment = hashlib.sha256(self.seed.encode()).hexdigest()
-        logger.debug(f"Dealer seed: {self.seed}")
+        #logger.debug(f"Dealer seed: {self.seed}")
         logger.debug(f"Dealer commitment: {self.commitment}")
-        # derive integer seed from SHA-256 hash for NumPy
-        hash_bytes = hashlib.sha256(self.seed.encode()).digest()
-        int_seed = int.from_bytes(hash_bytes[:8], 'big')
         # initialize NumPy RNG
-        self.rng = np.random.default_rng(int_seed)
+        h = hashlib.sha256(self.seed.encode()).digest()
+        ss = SeedSequence(np.frombuffer(h, dtype=np.uint32))
+        self.rng = Generator(PCG64(ss))
         # create and shuffle deck once using Fisher–Yates
         self.deck: list[Card] = list(create_deck())
         for i in range(len(self.deck)-1, 0, -1):
             j = self.rng.integers(0, i+1)
             self.deck[i], self.deck[j] = self.deck[j], self.deck[i]
-        logger.debug(f"Shuffled deck with numeric seed derived from {self.seed}")
+        logger.debug(f"Shuffled deck (commitment={self.commitment})")
         self.hand: list[Card] = []
         self.held: list[bool] = [False] * 5
         self.evaluation: str = ""
@@ -101,7 +105,7 @@ class Dealer:
         logger.debug(f"Cards remaining: {len(self.deck) - self.draw_index}")
 
     def evaluate(self):
-        self.evaluation = evaluate_hand(self.hand)
+        self.evaluation = evaluate_hand_jacks_or_better(self.hand)
         logger.debug(f"Hand evaluated: {self.evaluation}")
 
     def __str__(self):
