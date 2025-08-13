@@ -136,7 +136,7 @@ class PokerGame(BoxLayout):
 
 
         # комиссия перед новой раздачей
-        fee = self.accrue_credit_fee()
+        fee = self.accrue_credit_fee(bet)
 
         self.current_balance -= bet
         self._update_credit_buttons()
@@ -262,15 +262,17 @@ class PokerGame(BoxLayout):
         self.snd.play("repay")
         self._update_credit_buttons()
 
-    def accrue_credit_fee(self):
+    def accrue_credit_fee(self, bet):
         debt_for_fee = self.credit_outstanding - self.grace_amount
         if debt_for_fee <= 0:
             self.grace_amount = max(0, self.grace_amount - self.credit_outstanding)
             return 0
         fee = max(1, math.ceil(debt_for_fee * 0.01))
-        self.credit_outstanding += fee
-        if self.current_balance >= fee:
+
+        if self.current_balance - bet >= fee:
             self.current_balance -= fee
+        else:
+            self.credit_outstanding += fee
         self.grace_amount = 0
         self.snd.play("fee")
         return fee
