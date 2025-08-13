@@ -1,3 +1,5 @@
+#:import dp kivy.metrics.dp
+
 <PokerGame>:
     orientation: 'horizontal'
     padding: 10
@@ -127,6 +129,69 @@
         orientation: 'vertical'
         size_hint_x: 0.3
         spacing: 10
+
+        # === НОВОЕ: Кредитный блок (правый верх) ===
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: None
+            height: dp(120)
+            padding: dp(6)
+            spacing: dp(6)
+            canvas.before:
+                Color:
+                    rgba: 0.12, 0.12, 0.12, 1
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            # строки с цифрами
+            BoxLayout:
+                size_hint_y: None
+                height: dp(26)
+                spacing: dp(8)
+                Label:
+                    text: "Кредит:"
+                    halign: 'left'
+                    valign: 'middle'
+                    text_size: self.size
+                    font_size: '14sp'
+                Label:
+                    text: str(root.credit_outstanding)
+                    halign: 'right'
+                    valign: 'middle'
+                    text_size: self.size
+                    font_size: '14sp'
+            BoxLayout:
+                size_hint_y: None
+                height: dp(26)
+                spacing: dp(8)
+                Label:
+                    text: "Взято всего:"
+                    halign: 'left'
+                    valign: 'middle'
+                    text_size: self.size
+                    font_size: '14sp'
+                Label:
+                    text: str(root.credit_taken_total)
+                    halign: 'right'
+                    valign: 'middle'
+                    text_size: self.size
+                    font_size: '14sp'
+            # кнопки
+            BoxLayout:
+                size_hint_y: None
+                height: dp(44)
+                spacing: dp(8)
+                Button:
+                    id: credit_btn
+                    text: "Получить кредит +100"
+                    font_size: '14sp'
+                    on_press: root.get_credit(100)
+                Button:
+                    id: repay_btn
+                    text: "Погасить"
+                    font_size: '14sp'
+                    disabled: True
+                    on_press: root.repay_credit()
 
         Label:
             text: f"Текущий счёт: {root.current_balance}"

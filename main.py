@@ -11,7 +11,7 @@ from kivy.lang import Builder
 class PokerApp(App):
     def build(self):
         Builder.load_file('pokergame.kv')
-        from main_logic import PokerGame  # предполагается, что логика вытащена в отдельный файл
+        from main_logic import PokerGame
         return PokerGame()
 
 if __name__ == '__main__':
