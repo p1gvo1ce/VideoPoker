@@ -85,8 +85,8 @@ class PokerGame(BoxLayout):
             {"name": "Royal Flush",       "coef": 250, "img": "royal_flush.png"},
             {"name": "Straight Flush",    "coef": 50,  "img": "straight_flush.png"},
             {"name": "Four of a Kind",    "coef": 25,  "img": "four_of_a_kind.png"},
-            {"name": "Full House",        "coef": 9,   "img": "full_house.png"},
-            {"name": "Flush",             "coef": 6,   "img": "flush.png"},
+            {"name": "Full House",        "coef": 8,   "img": "full_house.png"},
+            {"name": "Flush",             "coef": 5,   "img": "flush.png"},
             {"name": "Straight",          "coef": 4,   "img": "straight.png"},
             {"name": "Three of a Kind",   "coef": 3,   "img": "three_of_a_kind.png"},
             {"name": "Two Pair",          "coef": 2,   "img": "two_pair.png"},
@@ -121,8 +121,6 @@ class PokerGame(BoxLayout):
             self.replace_cards()
 
     def start_round(self):
-        # комиссия перед новой раздачей
-        fee = self.accrue_credit_fee()
 
         self.dealer = Dealer()
         self.commitment_text = self.dealer.commitment
@@ -135,6 +133,10 @@ class PokerGame(BoxLayout):
             self.bet_controls_disabled = False
             self._update_credit_buttons()
             return
+
+
+        # комиссия перед новой раздачей
+        fee = self.accrue_credit_fee()
 
         self.current_balance -= bet
         self._update_credit_buttons()
