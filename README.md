@@ -69,7 +69,6 @@ python main.py
 
 🛠 To-Do
 
-    Sound effects for dealing & winning
 
     Touch support optimization for mobile
 

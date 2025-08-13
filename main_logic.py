@@ -5,11 +5,42 @@ from kivy.uix.label import Label
 from kivy.uix.widget import Widget
 from kivy.clock import Clock
 from kivy.utils import get_color_from_hex
+from kivy.core.audio import SoundLoader
 
 from dealer import Dealer
 
+
+class SoundBank:
+    def __init__(self, base="assets/sounds", volume=1.0):
+        self.sounds = {
+            "press":        f"{base}/slot-machine-press-spin-button.mp3",
+            "open_card":    f"{base}/open_card.mp3",
+            "rate_up":      f"{base}/rate_increase.mp3",
+            "rate_down":    f"{base}/rate_reduction.mp3",
+            "win":          f"{base}/slot_machine_win.mp3",
+            "payout":       f"{base}/machine-payout-collect.mp3",
+        }
+        for k, path in list(self.sounds.items()):
+            s = SoundLoader.load(path)
+            if s:
+                s.volume = volume
+                self.sounds[k] = s
+            else:
+                self.sounds[k] = None
+
+    def play(self, key, *, stop_first=True, volume=None):
+        s = self.sounds.get(key)
+        if not s:
+            return
+        if stop_first:
+            s.stop()
+        if volume is not None:
+            s.volume = volume
+        s.seek(0)
+        s.play()
+
+
 class PokerGame(BoxLayout):
-    # UI properties
     card_sources    = ListProperty(['cards/back.png'] * 5)
     held_flags      = ListProperty([False] * 5)
     chip_value      = NumericProperty(1)
@@ -18,10 +49,8 @@ class PokerGame(BoxLayout):
     current_balance = NumericProperty(100)
     win_amount      = NumericProperty(0)
     combo_text      = StringProperty('')
-    # display commitment and seed
     commitment_text = StringProperty('')
     seed_text       = StringProperty('')
-    # action button
     action_text     = StringProperty('Раздать')
     action_disabled = BooleanProperty(False)
     bet_controls_disabled = BooleanProperty(False)
@@ -29,6 +58,7 @@ class PokerGame(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.dealer = Dealer()
+        self.snd = SoundBank()
         self._row_labels = {}
         self._blink_ev = None
         self._game_active = False
@@ -70,19 +100,19 @@ class PokerGame(BoxLayout):
 
     def _reveal_card(self, idx, card):
         self.card_sources[idx] = f"cards/{card.suit.lower()}_{card.rank.rank_name.lower()}.png"
+        self.snd.play("open_card", stop_first=False)
 
     def on_action(self):
+        self.snd.play("press")
         if not self._game_active:
             self.start_round()
         else:
             self.replace_cards()
 
     def start_round(self):
-        # show commitment, clear seed
         self.dealer = Dealer()
         self.commitment_text = self.dealer.commitment
         self.seed_text = ''
-        # disable controls until end of round
         self.bet_controls_disabled = True
         self._reset_table_highlight()
 
@@ -93,16 +123,13 @@ class PokerGame(BoxLayout):
             return
 
         self.current_balance -= bet
-        # draw first five cards
         self.dealer.dealer_draw()
 
-        # reset UI
         self.card_sources = ['cards/back.png'] * 5
         self.held_flags   = [False] * 5
         self.win_amount   = 0
         self.combo_text   = ''
 
-        # reveal cards one by one
         for i, c in enumerate(self.dealer.hand):
             Clock.schedule_once(lambda dt, i=i, c=c: self._reveal_card(i, c), i + 1)
 
@@ -112,21 +139,18 @@ class PokerGame(BoxLayout):
 
     def replace_cards(self):
         self.action_disabled = True
-        # update held flags
         for i, held in enumerate(self.held_flags):
             self.dealer.held[i] = held
 
         self.dealer.dealer_replace()
         self.dealer.evaluate()
 
-        # reveal replacements
         to_reveal = [i for i, h in enumerate(self.held_flags) if not h]
         for idx in to_reveal:
             self.card_sources[idx] = 'cards/back.png'
         for j, idx in enumerate(to_reveal):
             Clock.schedule_once(lambda dt, ix=idx: self._reveal_card(ix, self.dealer.hand[ix]), j + 1)
 
-        # finalize
         Clock.schedule_once(lambda dt: self._finalize_replace(), len(to_reveal) + 1)
 
     def _finalize_replace(self):
@@ -137,9 +161,12 @@ class PokerGame(BoxLayout):
         self.current_balance += self.win_amount
         self.combo_text = combo
         self.blink_row(combo)
-        # show seed after result
+
+        if self.win_amount > 0:
+            self.snd.play("win")
+            Clock.schedule_once(lambda dt: self.snd.play("payout"), 0.6)
+
         self.seed_text = self.dealer.seed
-        # re-enable controls
         self.action_disabled = False
         self.bet_controls_disabled = False
         self.action_text = 'Раздать'
@@ -147,24 +174,29 @@ class PokerGame(BoxLayout):
 
     def on_hold_toggle(self, idx):
         self.held_flags[idx] = not self.held_flags[idx]
+        self.snd.play("press")
 
     def increase_chip_value(self):
         self.chip_value += 1
         self._update_bet()
+        self.snd.play("rate_up")
 
     def decrease_chip_value(self):
         if self.chip_value > 1:
             self.chip_value -= 1
-        self._update_bet()
+            self._update_bet()
+            self.snd.play("rate_down")
 
     def increase_chip_count(self):
         self.chip_count += 1
         self._update_bet()
+        self.snd.play("rate_up")
 
     def decrease_chip_count(self):
         if self.chip_count > 1:
             self.chip_count -= 1
-        self._update_bet()
+            self._update_bet()
+            self.snd.play("rate_down")
 
     def _update_bet(self):
         self.current_bet = self.chip_value * self.chip_count
