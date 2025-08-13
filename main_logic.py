@@ -1,3 +1,4 @@
+import math
 from kivy.properties import ListProperty, BooleanProperty, NumericProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.image import Image
@@ -10,9 +11,6 @@ from kivy.core.audio import SoundLoader
 from dealer import Dealer
 
 
-# -----------------------------
-# Sound system
-# -----------------------------
 class SoundBank:
     def __init__(self, base="assets/sounds", volume=1.0):
         self.sounds = {
@@ -22,6 +20,9 @@ class SoundBank:
             "rate_down":    f"{base}/rate_reduction.mp3",
             "win":          f"{base}/slot_machine_win.mp3",
             "payout":       f"{base}/machine-payout-collect.mp3",
+            "credit":       f"{base}/credit_take.mp3",
+            "repay":        f"{base}/credit_repay.mp3",
+            "fee":          f"{base}/credit_fee.mp3",
         }
         for k, path in list(self.sounds.items()):
             s = SoundLoader.load(path)
@@ -29,7 +30,7 @@ class SoundBank:
                 s.volume = volume
                 self.sounds[k] = s
             else:
-                self.sounds[k] = None  # не падаем, если файла нет
+                self.sounds[k] = None
 
     def play(self, key, *, stop_first=True, volume=None):
         s = self.sounds.get(key)
@@ -43,11 +44,7 @@ class SoundBank:
         s.play()
 
 
-# -----------------------------
-# Game UI / Logic
-# -----------------------------
 class PokerGame(BoxLayout):
-    # UI properties
     card_sources    = ListProperty(['cards/back.png'] * 5)
     held_flags      = ListProperty([False] * 5)
     chip_value      = NumericProperty(1)
@@ -56,19 +53,16 @@ class PokerGame(BoxLayout):
     current_balance = NumericProperty(100)
     win_amount      = NumericProperty(0)
     combo_text      = StringProperty('')
-
-    # commitment / seed display
     commitment_text = StringProperty('')
     seed_text       = StringProperty('')
-
-    # action button
     action_text     = StringProperty('Раздать')
     action_disabled = BooleanProperty(False)
     bet_controls_disabled = BooleanProperty(False)
 
-    # credit system
-    credit_outstanding   = NumericProperty(0)   # текущий долг
-    credit_taken_total   = NumericProperty(0)   # всего взято кредитов за сессию
+    # кредит
+    credit_outstanding = NumericProperty(0)
+    credit_taken_total = NumericProperty(0)
+    grace_amount       = NumericProperty(0)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -81,7 +75,6 @@ class PokerGame(BoxLayout):
         self._update_bet()
         self._update_credit_buttons()
 
-    # -------- payout table --------
     def populate_table(self):
         grid = self.ids.table_grid
         grid.clear_widgets()
@@ -116,7 +109,6 @@ class PokerGame(BoxLayout):
             lbl_name.color = [1, 1, 1, 1]
             lbl_coef.color = [1, 1, 1, 1]
 
-    # -------- card reveal / actions --------
     def _reveal_card(self, idx, card):
         self.card_sources[idx] = f"cards/{card.suit.lower()}_{card.rank.rank_name.lower()}.png"
         self.snd.play("open_card", stop_first=False)
@@ -129,35 +121,30 @@ class PokerGame(BoxLayout):
             self.replace_cards()
 
     def start_round(self):
-        # новый дилер, показываем commitment, seed скрыт
+        # комиссия перед новой раздачей
+        fee = self.accrue_credit_fee()
+
         self.dealer = Dealer()
         self.commitment_text = self.dealer.commitment
         self.seed_text = ''
-
         self.bet_controls_disabled = True
         self._reset_table_highlight()
 
         bet = self.chip_value * self.chip_count
         if self.current_balance < bet:
-            # недостаточно средств — просто не даём начать
             self.bet_controls_disabled = False
             self._update_credit_buttons()
             return
 
-        # списываем ставку
         self.current_balance -= bet
         self._update_credit_buttons()
 
-        # раздача
         self.dealer.dealer_draw()
-
-        # сброс UI
         self.card_sources = ['cards/back.png'] * 5
         self.held_flags   = [False] * 5
         self.win_amount   = 0
-        self.combo_text   = ''
+        self.combo_text   = '' if fee == 0 else f"Комиссия: {fee}"
 
-        # плавное открытие карт
         for i, c in enumerate(self.dealer.hand):
             Clock.schedule_once(lambda dt, i=i, c=c: self._reveal_card(i, c), i + 1)
 
@@ -167,58 +154,42 @@ class PokerGame(BoxLayout):
 
     def replace_cards(self):
         self.action_disabled = True
-
-        # переносим HOLD-флаги
         for i, held in enumerate(self.held_flags):
             self.dealer.held[i] = held
-
-        # обмен карт и оценка
         self.dealer.dealer_replace()
         self.dealer.evaluate()
 
-        # анимация открытия заменённых карт
         to_reveal = [i for i, h in enumerate(self.held_flags) if not h]
         for idx in to_reveal:
             self.card_sources[idx] = 'cards/back.png'
         for j, idx in enumerate(to_reveal):
             Clock.schedule_once(lambda dt, ix=idx: self._reveal_card(ix, self.dealer.hand[ix]), j + 1)
-
-        # финал через небольшую задержку
         Clock.schedule_once(lambda dt: self._finalize_replace(), len(to_reveal) + 1)
 
     def _finalize_replace(self):
         combo = self.dealer.evaluation
         coef = next((e['coef'] for e in self.payouts if e['name'] == combo), 0)
         bet = self.chip_value * self.chip_count
-
         self.win_amount = coef * bet
         self.current_balance += self.win_amount
         self.combo_text = combo
         self.blink_row(combo)
 
-        # звуки победы
         if self.win_amount > 0:
             self.snd.play("win")
             Clock.schedule_once(lambda dt: self.snd.play("payout"), 0.6)
 
-        # показываем seed после результата
         self.seed_text = self.dealer.seed
-
-        # восстановление управления
         self.action_disabled = False
         self.bet_controls_disabled = False
         self.action_text = 'Раздать'
         self._game_active = False
-
-        # пересчитать доступность кредитных кнопок
         self._update_credit_buttons()
 
-    # -------- HOLD --------
     def on_hold_toggle(self, idx):
         self.held_flags[idx] = not self.held_flags[idx]
         self.snd.play("press")
 
-    # -------- bet controls --------
     def increase_chip_value(self):
         self.chip_value += 1
         self._update_bet()
@@ -244,7 +215,6 @@ class PokerGame(BoxLayout):
     def _update_bet(self):
         self.current_bet = self.chip_value * self.chip_count
 
-    # -------- blink row --------
     def _blink_step(self):
         name_lbl, coef_lbl = self._blink_labels
         if name_lbl.color == [1, 1, 1, 1]:
@@ -272,30 +242,38 @@ class PokerGame(BoxLayout):
                 self._blink_ev.cancel()
         self._blink_ev = Clock.schedule_interval(step, interval)
 
-    # -------- credit system --------
+    # ==== КРЕДИТ ====
     def get_credit(self, amount=100):
-        """Выдать кредит и зафиксировать долг."""
         self.current_balance += amount
         self.credit_outstanding += amount
         self.credit_taken_total += amount
-        self.snd.play("press")
+        self.grace_amount += amount
+        self.snd.play("credit")
         self._update_credit_buttons()
 
     def repay_credit(self):
-        """Полное погашение долга, если хватает средств."""
-        if self.credit_outstanding == 0:
+        if self.credit_outstanding <= 0:
             return
-        if self.current_balance >= self.credit_outstanding:
-            self.current_balance -= self.credit_outstanding
-            self.credit_outstanding = 0
-            self.snd.play("payout")
+        repay_amount = min(self.current_balance, self.credit_outstanding)
+        self.current_balance -= repay_amount
+        self.credit_outstanding -= repay_amount
+        self.snd.play("repay")
         self._update_credit_buttons()
 
+    def accrue_credit_fee(self):
+        debt_for_fee = self.credit_outstanding - self.grace_amount
+        if debt_for_fee <= 0:
+            self.grace_amount = max(0, self.grace_amount - self.credit_outstanding)
+            return 0
+        fee = max(1, math.ceil(debt_for_fee * 0.01))
+        self.credit_outstanding += fee
+        if self.current_balance >= fee:
+            self.current_balance -= fee
+        self.grace_amount = 0
+        self.snd.play("fee")
+        return fee
+
     def _update_credit_buttons(self):
-        """Активируем/деактивируем кнопки кредита/погашения по состоянию."""
-        # Получить кредит разрешаем всегда; если хочешь — запрети при непогашенном долге:
-        # if "credit_btn" in self.ids:
-        #     self.ids.credit_btn.disabled = self.credit_outstanding > 0
         if "credit_btn" in self.ids:
             self.ids.credit_btn.disabled = False
         if "repay_btn" in self.ids:
